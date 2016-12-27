@@ -219,10 +219,9 @@ function create_config( )
     "anti_spam",
     "banhammer",
 			"plugins",
-			"inpm",
 			"ingroup",
 			"inrealm",
-			"supermanager"
+			"Manager"
 },
     vip_users = {}, --vip users
     sudo_users = {329467212,141987705,tonumber(our_id)},--Sudo users
