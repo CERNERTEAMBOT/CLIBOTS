@@ -1,34 +1,13 @@
-local function set_bot_photo(msg, success, result)
-  local receiver = get_receiver(msg)
-  if success then
-    local file = 'system/photos/bot.jpg'
-    print('File downloaded to:', result)
-    os.rename(result, file)
-    print('File moved to:', file)
-    set_profile_photo(file, ok_cb, false)
-    send_large_msg(receiver, 'Photo changed!', ok_cb, false)
-    redis:del("bot:photo")
-  else
-    print('Error downloading: '..msg.id)
-    send_large_msg(receiver, 'Failed, please try again!', ok_cb, false)
-  end
-end
 -- data saved to moderation.json
 -- check moderation plugin
 do
-	
-local function parsed_url(link)
-  local parsed_link = URL.parse(link)
-  local parsed_path = URL.parse_path(parsed_link.path)
-  return parsed_path[2]
-end
 
 local function create_group(msg)
      -- superuser and admins only (because sudo are always has privilege)
     if is_sudo(msg) or is_realm(msg) and is_admin1(msg) then
 		local group_creator = msg.from.print_name
 		create_group_chat (group_creator, group_name, ok_cb, false)
-		return 'Group [ '..string.gsub(group_name, '_', ' ')..' ] has been created.'
+		return '<b>Group [ '..string.gsub(group_name, '_', ' ')..' ] has been created.</b>'
 	end
 end
 
@@ -37,7 +16,7 @@ local function create_realm(msg)
 	if is_sudo(msg) or is_realm(msg) and is_admin1(msg) then
 		local group_creator = msg.from.print_name
 		create_group_chat (group_creator, group_name, ok_cb, false)
-		return 'Realm [ '..string.gsub(group_name, '_', ' ')..' ] has been created.'
+		return '<b>Realm [ '..string.gsub(group_name, '_', ' ')..' ] has been created.</b>'
 	end
 end
 
@@ -68,14 +47,14 @@ local function get_group_type(msg)
 			data[tostring(msg.to.id)]['group_type'] = 'Group'
 			save_data(_config.moderation.data, data)
 		elseif msg.to.type == 'channel' then
-			data[tostring(msg.to.id)]['group_type'] = 'SuperGroup'
+			data[tostring(msg.to.id)]['group_type'] = '<b>SuperGroup</b?>'
 			save_data(_config.moderation.data, data)
 		end
     end
 		local group_type = data[tostring(msg.to.id)]['group_type']
 		return group_type
 	else
-    return 'Chat type not found.'
+    return '<b>Chat type not found.</b>'
   end
 end
 
@@ -97,22 +76,22 @@ local function set_description(msg, data, target, about)
     local data_cat = 'description'
         data[tostring(target)][data_cat] = about
         save_data(_config.moderation.data, data)
-        return 'Set group description to:\n'..about
+        return '<b>Set group description to:\n</b>'..about
 end
 
 local function set_rules(msg, data, target)
     if not is_admin1(msg) then
-        return "For admins only!"
+        return "<b>For admins only!</b>"
     end
     local data_cat = 'rules'
         data[tostring(target)][data_cat] = rules
         save_data(_config.moderation.data, data)
-        return 'Set group rules to:\n'..rules
+        return '<b>Set group rules to:\n</b>'..rules
 end
 -- lock/unlock group name. bot automatically change group name when locked
 local function lock_group_name(msg, data, target)
     if not is_admin1(msg) then
-        return "For admins only!"
+        return "<b>For admins only!</b?>"
     end
     local group_name_set = data[tostring(target)]['settings']['set_name']
     local group_name_lock = data[tostring(target)]['settings']['lock_name']
@@ -476,7 +455,7 @@ local function returnids(cb_extra, success, result)
 		    i = i + 1
 		end
     end
-	local file = io.open("./system/chats/lists/"..result.peer_id.."memberlist.txt", "w")
+	local file = io.open("./groups/lists/"..result.peer_id.."memberlist.txt", "w")
 	file:write(text)
 	file:flush()
 	file:close()
@@ -580,7 +559,7 @@ local function groups_list(msg)
 			end
 		end
 	end
-    local file = io.open("./system/chats/lists/groups.txt", "w")
+    local file = io.open("./groups/lists/groups.txt", "w")
 	file:write(message)
 	file:flush()
 	file:close()
@@ -610,7 +589,7 @@ local function realms_list(msg)
 		end
 		message = message .. '- '.. name .. ' (' .. v .. ') ['..group_owner..'] \n {'..group_link.."}\n"
 	end
-	local file = io.open("./system/chats/lists/realms.txt", "w")
+	local file = io.open("./groups/lists/realms.txt", "w")
 	file:write(message)
 	file:flush()
 	file:close()
@@ -706,102 +685,35 @@ local function unset_log_group(msg)
   end
 end
 
+local function help()
+local help_text = tostring(_config.help_text_realm)
+  return help_text
+end
+
 function run(msg, matches)
-	
-	--Set bot photo:
-	local receiver = get_receiver(msg)
-    local group = msg.to.id
-	local print_name = user_print_name(msg.from):gsub("‮", "")
-	local name_log = print_name:gsub("_", " ")
-    if msg.media and is_admin1(msg) then
-      	if msg.media.type == 'photo' and redis:get("bot:photo") then
-      		if redis:get("bot:photo") == 'waiting' then
-        		load_photo(msg.id, set_bot_photo, msg)
-      		end
-      	end
-    end
-    if matches[1] == "setbotphoto" then
-    	redis:set("bot:photo", "waiting")
-    	return 'Please send me bot photo now'
-end
-	--Set bot photo.
-	--Broadcast:
-	if matches[1] == 'bc' then
-		if is_admin1(msg) or is_vip(msg) then
-		local response = matches[3]
-		--send_large_msg("chat#id"..matches[2], response)
-		send_large_msg("channel#id"..matches[2], response)
-	end
-	end
-	if matches[1] == 'broadcast' then
-		if is_sudo(msg) then -- Only sudo !
-			local data = load_data(_config.moderation.data)
-			local groups = 'groups'
-			local response = matches[2]
-			for k,v in pairs(data[tostring(groups)]) do
-				chat_id =  v
-				local chat = 'chat#id'..chat_id
-				local channel = 'channel#id'..chat_id
-				send_large_msg(chat, response)
-				send_large_msg(channel, response)
-			end
-		end
-   end
-   --Broadcast.
-   --Get plugin:
-   if matches[1] == "get" then
-    local file = matches[2]
-    if is_sudo(msg) or is_vip(msg) then
-      local receiver = get_receiver(msg)
-      send_document(receiver, "./plugins/"..file..".lua", ok_cb, false)
-    end
-  end
-   --Get plugin.
-   --Pm:
-   if matches[1] == "pm" then
-   if is_sudo(msg) or is_vip(msg) then
-    local text = "Message From "..(msg.from.username or msg.from.last_name).."\n\nMessage : "..matches[3]
-    send_large_msg("user#id"..matches[2],text)
-    return "Message has been sent"
-   end
-   end
-   --Pm.
-   --Markread :
-if matches[1] == "markread" then
-    if is_sudo(msg) then
-    	if matches[2] == "on" then
-    		redis:set("bot:markread", "on")
-    		return "Mark read > on"
-    	end
-    	if matches[2] == "off" then
-    		redis:del("bot:markread")
-    		return "Mark read > off"
-    	end
-    	return
-    end
-end
-   --Markread.
-	
    	local name_log = user_print_name(msg.from)
 		if matches[1] == 'log' and is_owner(msg) then
 		local receiver = get_receiver(msg)
-		send_document(receiver,"./system/chats/logs/"..msg.to.id.."log.txt", ok_cb, false)
+		savelog(msg.to.id, "log file created by owner/support/admin")
+		send_document(receiver,"./groups/logs/"..msg.to.id.."log.txt", ok_cb, false)
     end
 
 	if matches[1] == 'who' and msg.to.type == 'chat' and is_momod(msg) then
 		local name = user_print_name(msg.from)
+		savelog(msg.to.id, name.." ["..msg.from.id.."] requested member list ")
 		local receiver = get_receiver(msg)
 		chat_info(receiver, returnids, {receiver=receiver})
-		local file = io.open("./system/chats/lists/"..msg.to.id.."memberlist.txt", "r")
+		local file = io.open("./groups/lists/"..msg.to.id.."memberlist.txt", "r")
 		text = file:read("*a")
         send_large_msg(receiver,text)
         file:close()
 	end
 	if matches[1] == 'wholist' and is_momod(msg) then
 		local name = user_print_name(msg.from)
+		savelog(msg.to.id, name.." ["..msg.from.id.."] requested member list in a file")
 		local receiver = get_receiver(msg)
 		chat_info(receiver, returnids, {receiver=receiver})
-		send_document("chat#id"..msg.to.id,"./system/chats/lists/"..msg.to.id.."memberlist.txt", ok_cb, false)
+		send_document("chat#id"..msg.to.id,"./groups/lists/"..msg.to.id.."memberlist.txt", ok_cb, false)
 	end
 
 	if matches[1] == 'whois' and is_momod(msg) then
@@ -818,21 +730,14 @@ end
 		end
  	end
 
-    if matches[1] == 'creategroup' and matches[2] then
+    if matches[1] == 'creategp' and matches[2] then
         group_name = matches[2]
         group_type = 'group'
         return create_group(msg)
     end
-    
-    if is_sudo(msg) then
-		if matches[1] == 'go' and matches[2] then
-        local hash = parsed_url(matches[2])   
-        join = import_chat_link(hash,ok_cb,false)
-        end
-    end
 
 	--[[ Experimental
-	if matches[1] == 'createsuper' and matches[2] then
+	if matches[1] == 'creategpsup' and matches[2] then
 	if not is_sudo(msg) or is_admin1(msg) and is_realm(msg) then
 		return "You cant create groups!"
 	end
@@ -953,6 +858,7 @@ end
 			local group_name_set = data[tostring(msg.to.id)]['settings']['set_name']
 			local to_rename = 'chat#id'..msg.to.id
 			rename_chat(to_rename, group_name_set, ok_cb, false)
+			savelog(msg.to.id, "Realm { "..msg.to.print_name.." }  name changed to [ "..new_name.." ] by "..name_log.." ["..msg.from.id.."]")
         end
 
 		if matches[1] == 'setgpname' and is_admin1(msg) then
@@ -964,17 +870,24 @@ end
 			local channel_to_rename = 'channel#id'..matches[2]
 		    rename_chat(to_rename, group_name_set, ok_cb, false)
 			rename_channel(channel_to_rename, group_name_set, ok_cb, false)
+			savelog(matches[3], "Group { "..group_name_set.." }  name changed to [ "..new_name.." ] by "..name_log.." ["..msg.from.id.."]")
 		end
 
+    	if matches[1] == 'help' and is_realm(msg) then
+      		savelog(msg.to.id, name_log.." ["..msg.from.id.."] Used /help")
+     		return help()
+    	end
 		--[[if matches[1] == 'set' then
 			if matches[2] == 'loggroup' and is_sudo(msg) then
 				local target = msg.to.peer_id
+                savelog(msg.to.peer_id, name_log.." ["..msg.from.id.."] set as log group")
 				return set_log_group(target, data)
 			end
 		end
 		if matches[1] == 'rem' then
 			if matches[2] == 'loggroup' and is_sudo(msg) then
 				local target = msg.to.id
+				savelog(msg.to.id, name_log.." ["..msg.from.id.."] set as log group")
 				return unset_log_group(target, data)
 			end
 		end]]
@@ -1098,24 +1011,24 @@ end
 		if matches[1] == 'list' and matches[2] == 'groups' then
 			if msg.to.type == 'chat' or msg.to.type == 'channel' then
 				groups_list(msg)
-				send_document("chat#id"..msg.to.id, "./system/chats/lists/groups.txt", ok_cb, false)
-				send_document("channel#id"..msg.to.id, "./system/chats/lists/groups.txt", ok_cb, false)
+				send_document("chat#id"..msg.to.id, "./groups/lists/groups.txt", ok_cb, false)
+				send_document("channel#id"..msg.to.id, "./groups/lists/groups.txt", ok_cb, false)
 				return "Group list created" --group_list(msg)
 			elseif msg.to.type == 'user' then
 				groups_list(msg)
-				send_document("user#id"..msg.from.id, "./system/chats/lists/groups.txt", ok_cb, false)
+				send_document("user#id"..msg.from.id, "./groups/lists/groups.txt", ok_cb, false)
 				return "Group list created" --group_list(msg)
 			end
 		end
 		if matches[1] == 'list' and matches[2] == 'realms' then
 			if msg.to.type == 'chat' or msg.to.type == 'channel' then
 				realms_list(msg)
-				send_document("chat#id"..msg.to.id, "./system/chats/lists/realms.txt", ok_cb, false)
-				send_document("channel#id"..msg.to.id, "./system/chats/lists/realms.txt", ok_cb, false)
+				send_document("chat#id"..msg.to.id, "./groups/lists/realms.txt", ok_cb, false)
+				send_document("channel#id"..msg.to.id, "./groups/lists/realms.txt", ok_cb, false)
 				return "Realms list created" --realms_list(msg)
 			elseif msg.to.type == 'user' then
 				realms_list(msg)
-				send_document("user#id"..msg.from.id, "./system/chats/lists/realms.txt", ok_cb, false)
+				send_document("user#id"..msg.from.id, "./groups/lists/realms.txt", ok_cb, false)
 				return "Realms list created" --realms_list(msg)
 			end
 		end
@@ -1125,50 +1038,42 @@ end
      		}
       	local username = matches[2]
       	local username = username:gsub("@","")
+      	savelog(msg.to.id, name_log.." ["..msg.from.id.."] Used /res "..username)
       	return resolve_username(username,  callbackres, cbres_extra)
     end
 end
 
-
 return {
   patterns = {
-    "^[#!/](creategroup) (.*)$",
-	"^[#!/](createsuper) (.*)$",
-    "^[#!/](createrealm) (.*)$",
-    "^[#!/](setabout) (%d+) (.*)$",
-    "^[#!/](setrules) (%d+) (.*)$",
-    "^[#!/](setname) (.*)$",
-    "^[#!/](setgpname) (%d+) (.*)$",
-    "^[#!/](setname) (%d+) (.*)$",
-    "^[#!/](lock) (%d+) (.*)$",
-    "^[#!/](unlock) (%d+) (.*)$",
-	"^[#!/](mute) (%d+)$",
-	"^[#!/](unmute) (%d+)$",
-    "^[#!/](settings) (.*) (%d+)$",
-    "^[#!/](wholist)$",
-    "^[#!/](who)$",
-	"^[#!/]([Ww]hois) (.*)",
-    "^[#!/](type)$",
-    "^[#!/](markread) (on)$",
-	"^[#!/](markread) (off)$",
-    "^[#!/](kill) (chat) (%d+)$",
-    "^[#!/](kill) (realm) (%d+)$",
-    "^[#!/]([Gg]o) (.*)$",
-	"^[#!/](rem) (%d+)$",
-    "^[#!/](addadmin) (.*)$", -- sudoers only
-    "^[#!/](removeadmin) (.*)$", -- sudoers only
-	"^[#!/](support)$",
-	"^[#!/](support) (.*)$",
-    "^[#!/](-support) (.*)$",
-    "^[#!/](list) (.*)$",
-    "^[#!/](log)$",
-    "^[#!/](setbotphoto)$",
-    "^[#!/](broadcast) +(.+)$",
-    "^[#!/](bc) (%d+) (.*)$",
-    "^[#!/](get) (.*)$",
-    "^[#!/](pm) (%d+) (.*)$",
+    "^(creategp) (.*)$",
+	"^(creategpsup) (.*)$",
+    "^(createrealm) (.*)$",
+    "^(setabout) (%d+) (.*)$",
+    "^(setrules) (%d+) (.*)$",
+    "^(setname) (.*)$",
+    "^(setgpname) (%d+) (.*)$",
+    "^(setname) (%d+) (.*)$",
+    "^(lock) (%d+) (.*)$",
+    "^(unlock) (%d+) (.*)$",
+	"^(mute) (%d+)$",
+	"^(unmute) (%d+)$",
+    "^(settings) (.*) (%d+)$",
+    "^](wholist)$",
+    "^(who)$",
+	"^([Ww]hois) (.*)",
+    "^(type)$",
+    "^(kill) (chat) (%d+)$",
+    "^(kill) (realm) (%d+)$",
+	"^(rem) (%d+)$",
+    "^(addadmin) (.*)$", -- sudoers only
+    "^(removeadmin) (.*)$", -- sudoers only
+	"(support)$",
+	"^(support) (.*)$",
+    "^(-support) (.*)$",
+    "^(list) (.*)$",
+    "^(log)$",
+    "^(help)$",
     "^!!tgservice (.+)$",
-    "%[(photo)%]",
   },
   run = run
 }
