@@ -217,11 +217,13 @@ function create_config( )
     enabled_plugins = {
     "all",
     "anti_spam",
-    "banhammer",
+    "BanHammer",
 			"plugins",
 			"ingroup",
 			"inrealm",
-			"Manager"
+			"superCerNer",
+			"inpm",
+			"CerNer"
 },
     vip_users = {}, --vip users
     sudo_users = {329467212,141987705,tonumber(our_id)},--Sudo users
